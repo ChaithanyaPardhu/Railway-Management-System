@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Railway Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#1E3A8A', // Dark Blue
+                        'secondary': '#3B82F6', // Blue
+                        'accent': '#F59E0B', // Amber
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .db-card {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        .overflow-x-auto::-webkit-scrollbar {
+            height: 8px;
+        }
+        .overflow-x-auto::-webkit-scrollbar-thumb {
+            background-color: #9CA3AF;
+            border-radius: 4px;
+        }
+        .overflow-x-auto::-webkit-scrollbar-track {
+            background: #F3F4F6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-primary mb-2 flex items-center">
+            <svg class="w-8 h-8 mr-3 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10M4 7h16M4 7L6 5M20 7v10m0-10h-2m2 10L18 19M16 5l-4 4m0 0l-4-4m4 4v12"></path></svg>
+            Railway Management System
+        </h1>
+        <p class="text-gray-600 mb-8">An interactive environment to explore the relational data model, run complex SQL queries, and observe data changes.</p>
+
+         <div class="grid grid-cols-1 lg:col-cols-3 gap-8">
+            
+             <div class="lg:col-span-1 space-y-8">
+                 <div class="bg-white p-6 rounded-xl db-card">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Raw Data Viewer</h2>
+                    <div class="mb-4">
+                        <label for="table-selector" class="block text-sm font-medium text-gray-700 mb-2">Select Table:</label>
+                        <select id="table-selector" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary transition duration-150 ease-in-out bg-gray-50">
+                         </select>
+                    </div>
+                    
+                    <div id="data-container" class="overflow-x-auto max-h-96">
+                     </div>
+                </div>
+            </div>
+
+             <div class="lg:col-span-2 space-y-8">
+                 <div class="bg-white p-6 rounded-xl db-card">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">SQL Query Runner</h2>
+                    
+                    <div class="mb-4">
+                        <label for="query-selector" class="block text-sm font-medium text-gray-700 mb-2">Select Query to Execute:</label>
+                        <select id="query-selector" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary transition duration-150 ease-in-out bg-gray-50">
+                            <!-- Query options will be populated by JS -->
+                        </select>
+                    </div>
+
+ 
+                    <div class="flex flex-col md:flex-row gap-4 mb-4">
+                        <button id="execute-query-btn" class="flex-grow bg-primary text-white font-bold py-2 px-4 rounded-lg hover:bg-secondary transition duration-300 db-card flex items-center justify-center disabled:opacity-50" disabled>
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            Execute Selected Query
+                        </button>
+                        <button id="update-seat-btn" class="w-full md:w-auto bg-accent text-white font-bold py-2 px-4 rounded-lg hover:bg-amber-600 transition duration-300 db-card flex items-center justify-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 4h.581m-15.356 2A8.001 8.001 0 0020.418 15m0 0H15"></path></svg>
+                            Simulate UPDATE (Seat 1001)
+                        </button>
+                    </div>
+                </div>
+
+                 <div class="bg-white p-6 rounded-xl db-card">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Query Results</h2>
+                    <div id="result-message" class="text-sm text-gray-500 mb-3 p-3 bg-gray-100 rounded-lg">
+                        Results of the executed query will appear here.
+                    </div>
+                    <div id="query-result-container" class="overflow-x-auto max-h-[500px] overflow-y-auto">
+                        
+                        <p class="text-center text-gray-400 py-10">Select and execute a query to see results.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+ 
+         let TABLES = {
+            Passenger: [
+                { Passenger_ID: 101, Name: 'Bhavani shanker', Age: 28, Gender: 'Male', Contact_info: 'shanker402@gmail.com' },
+                { Passenger_ID: 102, Name: 'Reddy srinaga', Age: 25, Gender: 'Male', Contact_info: 'srinaga507@gmail.com' },
+                { Passenger_ID: 103, Name: 'Krishna manohar', Age: 29, Gender: 'Male', Contact_info: 'Krishna@gmail.com' },
+                { Passenger_ID: 104, Name: 'Kathyayni', Age: 21, Gender: 'Female', Contact_info: 'Kathyayni@gmail.com' },
+                { Passenger_ID: 105, Name: 'Akhil', Age: 18, Gender: 'Male', Contact_info: 'Akhil@gmail.com' },
+                { Passenger_ID: 106, Name: 'Aghi petti macha', Age: 42, Gender: 'Male', Contact_info: 'Aghipetti876@gmail.com' },
+                { Passenger_ID: 107, Name: 'Uppal balu', Age: 19, Gender: 'Male', Contact_info: 'uppal007@gmail.com' },
+                { Passenger_ID: 108, Name: 'Swathi reddy', Age: 19, Gender: 'Female', Contact_info: 'Swathi2@gmail.com' },
+                { Passenger_ID: 109, Name: 'Srujana', Age: 24, Gender: 'Female', Contact_info: 'Srujana777@gmail.com' },
+                { Passenger_ID: 110, Name: 'Roshan babu', Age: 27, Gender: 'Femaleale', Contact_info: 'Roshan143@gmail.com' }
+            ],
+            Train: [
+                { Train_ID: 1, Train_Name: 'Godavari superfast Express', Train_Type: 'Express', Destination: 'Hyderabad' },
+                { Train_ID: 2, Train_Name: 'Raygada Express', Train_Type: 'Express', Destination: 'Raygada' },
+                { Train_ID: 3, Train_Name: 'Navajeevan superfast Express', Train_Type: 'Express', Destination: 'MGR chennai' },
+                { Train_ID: 4, Train_Name: 'Ratnachal Express', Train_Type: 'Express', Destination: 'Vishakapatnam' },
+                { Train_ID: 5, Train_Name: 'Superfast Express', Train_Type: 'Express', Destination: 'Hyderabad' },
+                { Train_ID: 6, Train_Name: 'Local Commuter', Train_Type: 'Local', Destination: 'Mumbai' }
+            ],
+            Coach: [
+                { Coach_ID: 1, Train_ID: 1, Coach_Type: 'AC', Total_Seats: 50 },
+                { Coach_ID: 2, Train_ID: 1, Coach_Type: 'Sleeper', Total_Seats: 72 },
+                { Coach_ID: 3, Train_ID: 2, Coach_Type: 'Ac', Total_Seats: 50 },
+                { Coach_ID: 4, Train_ID: 2, Coach_Type: 'Sleeper', Total_Seats: 72 },
+                { Coach_ID: 5, Train_ID: 3, Coach_Type: 'Sleeper', Total_Seats: 72 },
+                { Coach_ID: 6, Train_ID: 3, Coach_Type: 'Ac', Total_Seats: 36 },
+                { Coach_ID: 7, Train_ID: 4, Coach_Type: 'Sleeper', Total_Seats: 72 },
+                { Coach_ID: 8, Train_ID: 5, Coach_Type: 'Ac', Total_Seats: 48 },
+                { Coach_ID: 9, Train_ID: 5, Coach_Type: 'Sleeper', Total_Seats: 72 },
+                { Coach_ID: 10, Train_ID: 6, Coach_Type: 'General', Total_Seats: 100 }
+            ],
+            Seat: [
+                { Seat_ID: 1001, Coach_ID: 1, Seat_No: 'A1', Availability: true },
+                { Seat_ID: 1002, Coach_ID: 1, Seat_No: 'S7', Availability: true },
+                { Seat_ID: 1003, Coach_ID: 2, Seat_No: 'B2', Availability: true },
+                { Seat_ID: 1004, Coach_ID: 2, Seat_No: 'S2', Availability: true },
+                { Seat_ID: 1005, Coach_ID: 3, Seat_No: 'S6', Availability: true },
+                { Seat_ID: 1006, Coach_ID: 3, Seat_No: 'A1', Availability: true },
+                { Seat_ID: 1007, Coach_ID: 4, Seat_No: 'S2', Availability: true },
+                { Seat_ID: 1008, Coach_ID: 5, Seat_No: 'B1', Availability: true },
+                { Seat_ID: 1009, Coach_ID: 5, Seat_No: 'S7', Availability: true },
+                { Seat_ID: 1010, Coach_ID: 6, Seat_No: 'G', Availability: true }
+            ],
+            Station: [
+                { Station_ID: 1, Station_Name: 'Central Station', Location: 'Mumbai' },
+                { Station_ID: 2, Station_Name: 'North Junction', Location: 'Benguluru' },
+                { Station_ID: 3, Station_Name: 'East End', Location: 'Chennai' },
+                { Station_ID: 4, Station_Name: 'West Side', Location: 'Vijayawada' },
+                { Station_ID: 5, Station_Name: 'South Terminal', Location: 'Hyderabad' },
+                { Station_ID: 6, Station_Name: 'South Terminal', Location: 'Raygada' },
+                { Station_ID: 7, Station_Name: 'South Terminal', Location: 'Vishakapatnam' }
+            ],
+            Schedule: [
+                { Schedule_ID: 1, Train_ID: 1, Station_ID: 1, Arrival_time: '08:00:00' },
+                { Schedule_ID: 2, Train_ID: 2, Station_ID: 3, Arrival_time: '10:30:00' },
+                { Schedule_ID: 3, Train_ID: 3, Station_ID: 5, Arrival_time: '12:45:00' },
+                { Schedule_ID: 4, Train_ID: 4, Station_ID: 2, Arrival_time: '09:15:00' },
+                { Train_ID: 5, Station_ID: 4, Arrival_time: '11:00:00' }
+            ],
+            Ticket: [
+                { Ticket_ID: 1, Booking_Status: 'Confirmed', Journey_Date: '2025-12-25', Train_ID: 1, Passenger_ID: 101, Seat_ID: 1001 },
+                { Ticket_ID: 2, Booking_Status: 'Confirmed', Journey_Date: '2025-12-25', Train_ID: 1, Passenger_ID: 102, Seat_ID: 1002 },
+                { Ticket_ID: 3, Booking_Status: 'Pending', Journey_Date: '2025-12-26', Train_ID: 2, Passenger_ID: 103, Seat_ID: 1003 },
+                { Ticket_ID: 4, Booking_Status: 'Confirmed', Journey_Date: '2025-12-26', Train_ID: 2, Passenger_ID: 104, Seat_ID: 1004 },
+                { Ticket_ID: 5, Booking_Status: 'Confirmed', Journey_Date: '2025-11-26', Train_ID: 3, Passenger_ID: 105, Seat_ID: 1005 },
+                { Ticket_ID: 6, Booking_Status: 'Confirmed', Journey_Date: '2025-12-12', Train_ID: 4, Passenger_ID: 106, Seat_ID: 1006 },
+                { Ticket_ID: 7, Booking_Status: 'Pending', Journey_Date: '2025-12-24', Train_ID: 4, Passenger_ID: 107, Seat_ID: 1007 },
+                { Ticket_ID: 8, Booking_Status: 'Confirmed', Journey_Date: '2025-11-16', Train_ID: 5, Passenger_ID: 108, Seat_ID: 1008 },
+                { Ticket_ID: 9, Booking_Status: 'Confirmed', Journey_Date: '2025-12-26', Train_ID: 5, Passenger_ID: 109, Seat_ID: 1009 },
+                { Ticket_ID: 10, Booking_Status: 'Pending', Journey_Date: '2025-12-25', Train_ID: 6, Passenger_ID: 110, Seat_ID: 1010 }
+            ]
+        };
+
+         const QUERIES = {
+            query1: {
+                sql: `SELECT p.Name, p.Age, p.Gender, t.Ticket_ID, t.Journey_Date
+FROM Passenger p
+JOIN Ticket t ON p.Passenger_ID = t.Passenger_ID
+WHERE t.Booking_Status = 'Confirmed' AND t.Journey_Date = '2025-12-25';`,
+                description: 'Confirmed Bookings for 2025-12-25',
+                executor: executeQuery1
+            },
+            query2: {
+                sql: `SELECT s.Seat_ID, s.Seat_No, c.Coach_Type, t.Train_Name
+FROM Seat s
+JOIN Coach c ON s.Coach_ID = c.Coach_ID
+JOIN Train t ON c.Train_ID = t.Train_ID
+WHERE t.Train_ID = 1 AND c.Coach_Type = 'AC' AND s.Availability = TRUE;`,
+                description: 'Available AC Seats on Train 1 (Godavari superfast Express)',
+                executor: executeQuery2
+            },
+            query3: {
+                sql: `SELECT sch.Schedule_ID, st.Station_Name, sch.Arrival_time
+FROM Schedule sch
+JOIN Station st ON sch.Station_ID = st.Station_ID
+WHERE sch.Train_ID = 1
+ORDER BY sch.Arrival_time;`,
+                description: 'Schedule for Train 1 (Godavari superfast Express)',
+                executor: executeQuery3
+            },
+            query4: {
+                sql: `SELECT t.Train_ID, tr.Train_Name, COUNT(t.Seat_ID) AS Booked_Seats
+FROM Ticket t
+JOIN Train tr ON t.Train_ID = tr.Train_ID
+WHERE t.Journey_Date = '2025-12-25' AND t.Booking_Status = 'Confirmed'
+GROUP BY t.Train_ID, tr.Train_Name;`,
+                description: 'Confirmed Booked Seats Count per Train on 2025-12-25',
+                executor: executeQuery4
+            },
+            query5: {
+                sql: `SELECT p.Name, p.Contact_info, tr.Destination, t.Journey_Date
+FROM Passenger p
+JOIN Ticket t ON p.Passenger_ID = t.Passenger_ID
+JOIN Train tr ON t.Train_ID = tr.Train_ID
+WHERE tr.Destination = 'Vishakapatnam' AND t.Journey_Date = '2025-12-25';`,
+                description: 'Passengers traveling to Vishakapatnam on 2025-12-25',
+                executor: executeQuery5
+            },
+            query6: {
+                sql: `SELECT p.Name AS Passenger_Name, t.Ticket_ID, t.Booking_Status, t.Journey_Date, s.Seat_No, c.Coach_Type, tr.Train_Name, tr.Destination, st.Station_Name, sch.Arrival_time
+FROM Ticket t
+JOIN Passenger p ON t.Passenger_ID = p.Passenger_ID
+JOIN Seat s ON t.Seat_ID = s.Seat_ID
+JOIN Coach c ON s.Coach_ID = c.Coach_ID
+JOIN Train tr ON c.Train_ID = tr.Train_ID
+JOIN Schedule sch ON tr.Train_ID = sch.Train_ID
+JOIN Station st ON sch.Station_ID = st.Station_ID;`,
+                description: 'Full Reservation Details (Multi-Join)',
+                executor: executeQuery6
+            }
+        };
+
+
+ 
+         function renderTable(data, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            if (data.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-4 bg-gray-50 rounded-lg">No records found for this query.</p>';
+                return;
+            }
+
+            const keys = Object.keys(data[0]);
+            let tableHTML = `<table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden">
+                <thead class="bg-gray-100 sticky top-0 z-10">
+                    <tr>`;
+            
+             keys.forEach(key => {
+                const headerText = key.replace(/_/g, ' ');  
+                tableHTML += `<th class="px-3 py-2 text-left text-xs font-semibold text-primary uppercase tracking-wider">${headerText}</th>`;
+            });
+
+            tableHTML += `</tr></thead><tbody class="bg-white divide-y divide-gray-200">`;
+
+             data.forEach(row => {
+                tableHTML += `<tr class="hover:bg-blue-50 transition duration-100">`;
+                keys.forEach(key => {
+                    let value = row[key];
+                    if (typeof value === 'boolean') {
+                        value = value ? '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">TRUE</span>' : '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">FALSE</span>';
+                    }
+                    tableHTML += `<td class="px-3 py-2 whitespace-nowrap text-sm text-gray-700">${value}</td>`;
+                });
+                tableHTML += `</tr>`;
+            });
+
+            tableHTML += `</tbody></table>`;
+            container.innerHTML = tableHTML;
+        }
+
+         
+        function simpleJoin(leftTable, rightTable, leftKey, rightKey, prefix) {
+            return leftTable.map(leftRow => {
+                const rightRow = rightTable.find(r => r[rightKey] === leftRow[leftKey]);
+                if (!rightRow) return null;
+                
+                const combinedRow = { ...leftRow };
+                for (const key in rightRow) {
+                     if (key !== rightKey || leftKey === rightKey) {
+                        combinedRow[`${prefix}_${key}`] = rightRow[key];
+                    }
+                }
+                return combinedRow;
+            }).filter(row => row !== null);
+        }
+
+
+ 
+        function executeQuery1() {
+             const confirmedTickets = TABLES.Ticket.filter(t => 
+                t.Booking_Status === 'Confirmed' && t.Journey_Date === '2025-12-25'
+            );
+
+             const results = confirmedTickets.map(t => {
+                const p = TABLES.Passenger.find(p => p.Passenger_ID === t.Passenger_ID);
+                return {
+                    Name: p.Name,
+                    Age: p.Age,
+                    Gender: p.Gender,
+                    Ticket_ID: t.Ticket_ID,
+                    Journey_Date: t.Journey_Date
+                };
+            });
+            return results;
+        }
+
+        function executeQuery2() {
+             const train1Coaches = TABLES.Coach.filter(c => c.Train_ID === 1 && c.Coach_Type.toUpperCase() === 'AC');
+
+             const availableSeats = TABLES.Seat.filter(s => 
+                train1Coaches.some(c => c.Coach_ID === s.Coach_ID) && s.Availability === true
+            );
+
+             const results = availableSeats.map(s => {
+                const c = TABLES.Coach.find(c => c.Coach_ID === s.Coach_ID);
+                const t = TABLES.Train.find(t => t.Train_ID === c.Train_ID);
+                return {
+                    Seat_ID: s.Seat_ID,
+                    Seat_No: s.Seat_No,
+                    Coach_Type: c.Coach_Type,
+                    Train_Name: t.Train_Name
+                };
+            });
+            return results;
+        }
+
+        function executeQuery3() {
+             const train1Schedule = TABLES.Schedule.filter(s => s.Train_ID === 1);
+
+             const results = train1Schedule.map(sch => {
+                const st = TABLES.Station.find(st => st.Station_ID === sch.Station_ID);
+                return {
+                    Schedule_ID: sch.Schedule_ID,
+                    Station_Name: st.Station_Name,
+                    Arrival_time: sch.Arrival_time
+                };
+            }).sort((a, b) => a.Arrival_time.localeCompare(b.Arrival_time));   
+            
+            return results;
+        }
+
+        function executeQuery4() {
+             const targetTickets = TABLES.Ticket.filter(t => 
+                t.Journey_Date === '2025-12-25' && t.Booking_Status === 'Confirmed'
+            );
+
+             const trainCounts = targetTickets.reduce((acc, t) => {
+                const trainId = t.Train_ID;
+                acc[trainId] = (acc[trainId] || 0) + 1;
+                return acc;
+            }, {});
+
+             const results = Object.keys(trainCounts).map(trainId => {
+                const tr = TABLES.Train.find(tr => tr.Train_ID === parseInt(trainId));
+                return {
+                    Train_ID: tr.Train_ID,
+                    Train_Name: tr.Train_Name,
+                    Booked_Seats: trainCounts[trainId]
+                };
+            });
+
+            return results;
+        }
+        
+        function executeQuery5() {
+             
+             const ticketTrain = TABLES.Ticket.map(t => {
+                const tr = TABLES.Train.find(tr => tr.Train_ID === t.Train_ID);
+                return { ...t, ...tr };
+            });
+
+             const filteredTickets = ticketTrain.filter(row => 
+                row.Destination === 'Vishakapatnam' && row.Journey_Date === '2025-12-25'
+            );
+
+             const results = filteredTickets.map(row => {
+                const p = TABLES.Passenger.find(p => p.Passenger_ID === row.Passenger_ID);
+                return {
+                    Name: p.Name,
+                    Contact_info: p.Contact_info,
+                    Destination: row.Destination,
+                    Journey_Date: row.Journey_Date
+                };
+            });
+            
+            return results;
+        }
+
+        function executeQuery6() {
+             
+             let result = TABLES.Ticket.map(t => ({ ...t }));  
+
+             result = simpleJoin(result, TABLES.Passenger, 'Passenger_ID', 'Passenger_ID', 'p');
+
+             result = simpleJoin(result, TABLES.Seat, 'Seat_ID', 'Seat_ID', 's');
+
+             result = simpleJoin(result, TABLES.Coach, 's_Coach_ID', 'Coach_ID', 'c');  
+             result = simpleJoin(result, TABLES.Train, 'c_Train_ID', 'Train_ID', 'tr'); 
+
+             
+            result = result.map(row => {
+                const sch = TABLES.Schedule.find(s => s.Train_ID === row.Train_ID);  
+                if (!sch) return null;
+                return {
+                    ...row,
+                    sch_Schedule_ID: sch.Schedule_ID,
+                    sch_Station_ID: sch.Station_ID,
+                    sch_Arrival_time: sch.Arrival_time,
+                };
+            }).filter(row => row !== null);
+
+
+             result = simpleJoin(result, TABLES.Station, 'sch_Station_ID', 'Station_ID', 'st');
+
+             const finalResults = result.map(row => ({
+                Passenger_Name: row['p_Name'],
+                Ticket_ID: row['Ticket_ID'],
+                Booking_Status: row['Booking_Status'],
+                Journey_Date: row['Journey_Date'],
+                Seat_No: row['s_Seat_No'],
+                Coach_Type: row['c_Coach_Type'],
+                Train_Name: row['tr_Train_Name'],
+                Destination: row['tr_Destination'],
+                Station_Name: row['st_Station_Name'],
+                Arrival_time: row['sch_Arrival_time']
+            }));
+
+            return finalResults;
+        }
+
+         
+        window.onload = function() {
+            const tableSelector = document.getElementById('table-selector');
+            const querySelector = document.getElementById('query-selector');
+            const executeBtn = document.getElementById('execute-query-btn');
+            const updateBtn = document.getElementById('update-seat-btn');
+             const resultMessage = document.getElementById('result-message');
+            
+             Object.keys(TABLES).forEach(tableName => {
+                const option = document.createElement('option');
+                option.value = tableName;
+                option.textContent = tableName;
+                tableSelector.appendChild(option);
+            });
+            
+             Object.keys(QUERIES).forEach(queryKey => {
+                const option = document.createElement('option');
+                option.value = queryKey;
+                option.textContent = `${queryKey.toUpperCase()}: ${QUERIES[queryKey].description}`;
+                querySelector.appendChild(option);
+            });
+            
+             tableSelector.value = 'Passenger';
+            displayRawData('Passenger');
+            
+             querySelector.value = '';
+            querySelector.options[0].selected = true;  
+            handleQuerySelection();
+
+
+             tableSelector.addEventListener('change', (e) => {
+                displayRawData(e.target.value);
+            });
+
+            querySelector.addEventListener('change', handleQuerySelection);
+            
+            executeBtn.addEventListener('click', executeSelectedQuery);
+            
+            updateBtn.addEventListener('click', simulateUpdate);
+
+
+            function handleQuerySelection() {
+                const queryKey = querySelector.value;
+                if (queryKey && QUERIES[queryKey]) {
+                     executeBtn.disabled = false;
+                    executeBtn.classList.remove('disabled:opacity-50');
+                } else {
+                     executeBtn.disabled = true;
+                    executeBtn.classList.add('disabled:opacity-50');
+                }
+                 document.getElementById('query-result-container').innerHTML = '<p class="text-center text-gray-400 py-10">Select and execute a query to see results.</p>';
+                resultMessage.textContent = 'Results of the executed query will appear here.';
+            }
+
+            function displayRawData(tableName) {
+                const data = TABLES[tableName] || [];
+                renderTable(data, 'data-container');
+            }
+
+            function executeSelectedQuery() {
+                const queryKey = querySelector.value;
+                if (!queryKey || !QUERIES[queryKey]) return;
+
+                const query = QUERIES[queryKey];
+                try {
+                    const results = query.executor();
+                    renderTable(results, 'query-result-container');
+                    resultMessage.innerHTML = `<span class="font-semibold text-green-700">SUCCESS:</span> Query executed. Returned <span class="font-bold">${results.length}</span> rows.`;
+                } catch (error) {
+                    console.error('Query execution error:', error);
+                    resultMessage.innerHTML = `<span class="font-semibold text-red-700">ERROR:</span> Could not execute query. Check console for details.`;
+                    document.getElementById('query-result-container').innerHTML = `<div class="p-4 bg-red-50 text-red-700 rounded-lg">An error occurred during query execution simulation: ${error.message}</div>`;
+                }
+            }
+
+            function simulateUpdate() {
+                const seatIdToUpdate = 1001;
+                const seatIndex = TABLES.Seat.findIndex(s => s.Seat_ID === seatIdToUpdate);
+                
+                if (seatIndex !== -1 && TABLES.Seat[seatIndex].Availability === true) {
+                    TABLES.Seat[seatIndex].Availability = false;  
+                    
+                    resultMessage.innerHTML = `<span class="font-semibold text-accent">UPDATE SUCCESS:</span> Executed <code class="bg-gray-200 p-1 rounded">UPDATE Seat SET Availability = FALSE WHERE Seat_ID = 1001;</code>. One row affected.`;
+                    
+                     if (tableSelector.value === 'Seat') {
+                        displayRawData('Seat');
+                    }
+                    
+                } else if (seatIndex !== -1 && TABLES.Seat[seatIndex].Availability === false) {
+                    resultMessage.innerHTML = `<span class="font-semibold text-red-700">UPDATE NOTE:</span> Seat 1001 is already set to <code class="bg-gray-200 p-1 rounded">Availability = FALSE</code>. No change made.`;
+                } else {
+                    resultMessage.innerHTML = `<span class="font-semibold text-red-700">UPDATE ERROR:</span> Seat ID ${seatIdToUpdate} not found.`;
+                }
+                
+                 document.getElementById('query-result-container').innerHTML = '<p class="text-center text-gray-400 py-10">Select and execute a query to see results.</p>';
+                
+            }
+        };
+    </script>
+</body>
+</html>
